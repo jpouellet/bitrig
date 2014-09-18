@@ -276,7 +276,7 @@ kvm_deadfile_byid(kvm_t *kd, int op, int arg, size_t esize, int *cnt)
 	struct proc proc;
 	struct process *pr, process;
 	struct ucred ucred;
-	char *filebuf = NULL;
+	struct filedescent *filebuf = NULL;
 	int i, nfiles;
 
 	nl[0].n_name = "_filehead";
@@ -357,30 +357,30 @@ kvm_deadfile_byid(kvm_t *kd, int op, int arg, size_t esize, int *cnt)
 			    (u_long)process.ps_fd);
 			goto cleanup;
 		}
-		if ((char *)process.ps_fd + offsetof(struct filedesc0,fd_dfiles)
-		    == (char *)filed.fd_ofiles) {
-			filed.fd_ofiles = filed0.fd_dfiles;
-			filed.fd_ofileflags = filed0.fd_dfileflags;
+		if ((char *)process.ps_fd + offsetof(struct filedesc0,fd_dfdents)
+		    == (char *)filed.fd_fdents) {
+			filed.fd_fdents = filed0.fd_dfdents;
 		} else {
 			size_t fsize;
-			char *tmp = reallocarray(filebuf,
-			    filed.fd_nfiles, OFILESIZE);
+			struct filedescent *tmp;
 
-			fsize = filed.fd_nfiles * OFILESIZE;
+			tmp = reallocarray(filebuf, filed.fd_nfiles,
+			    sizeof(struct filedescent));
 			if (tmp == NULL) {
-				_kvm_syserr(kd, kd->program, "realloc ofiles");
+				_kvm_syserr(kd, kd->program,
+				    "reallocarray fd_fdents");
 				goto cleanup;
 			}
+			fsize = filed.fd_nfiles * sizeof(struct filedescent);
 			filebuf = tmp;
-			if (kvm_read(kd, (u_long)filed.fd_ofiles, filebuf,
+
+			if (kvm_read(kd, (u_long)filed.fd_fdents, filebuf,
 			    fsize) != fsize) {
 				_kvm_err(kd, kd->program,
-				    "can't read fd_ofiles");
+				    "can't read fd_fdents");
 				goto cleanup;
 			}
-			filed.fd_ofiles = (void *)filebuf;
-			filed.fd_ofileflags = filebuf +
-			    (filed.fd_nfiles * sizeof(struct file *));
+			filed.fd_fdents = filebuf;
 		}
 		process.ps_fd = &filed;
 
@@ -441,7 +441,7 @@ kvm_deadfile_byid(kvm_t *kd, int op, int arg, size_t esize, int *cnt)
 		for (i = 0; i < filed.fd_nfiles; i++) {
 			if (buflen < esize)
 				goto done;
-			if ((fp = filed.fd_ofiles[i]) == NULL)
+			if ((fp = filed.fd_fdents[i].fde_file) == NULL)
 				continue;
 			if (KREAD(kd, (u_long)fp, &file)) {
 				_kvm_err(kd, kd->program, "can't read file");
@@ -732,7 +732,7 @@ fill_file(kvm_t *kd, struct kinfo_file *kf, struct file *fp, u_long fpaddr,
 		strlcpy(kf->p_comm, pr->ps_mainproc->p_comm,
 		    sizeof(kf->p_comm));
 		if (pr->ps_fd != NULL)
-			kf->fd_ofileflags = pr->ps_fd->fd_ofileflags[fd];
+			kf->fd_ofileflags = pr->ps_fd->fd_fdents[fd].fde_flags;
 	}
 
 	return (0);

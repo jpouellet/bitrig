@@ -733,7 +733,7 @@ sys_open(p, v, retval)
 		}
 		if (error == ERESTART)
 			error = EINTR;
-		fdp->fd_ofiles[indx] = NULL;
+		fdp->fd_fdents[indx].fde_file = NULL;
 		return (error);
 	}
 	p->p_dupfd = 0;
@@ -757,7 +757,7 @@ sys_open(p, v, retval)
 		if (error = VOP_ADVLOCK(vp, (caddr_t)fp, F_SETLK, &lf, type)) {
 			(void) vn_close(vp, fp->f_flag, fp->f_cred, p);
 			ffree(fp);
-			fdp->fd_ofiles[indx] = NULL;
+			fdp->fd_fdents[indx].fde_file = NULL;
 			return (error);
 		}
 		VOP_LOCK(vp);
@@ -1084,7 +1084,7 @@ sys_lseek(p, v, retval)
 	int error;
 
 	if ((u_int)SCARG(uap, fd) >= fdp->fd_nfiles ||
-	    (fp = fdp->fd_ofiles[SCARG(uap, fd)]) == NULL)
+	    (fp = fdp->fd_fdents[SCARG(uap, fd)].fde_file) == NULL)
 		return (EBADF);
 	if (fp->f_type != DTYPE_VNODE)
 		return (ESPIPE);
@@ -2021,7 +2021,7 @@ getvnode(fdp, fd, fpp)
 	struct file *fp;
 
 	if ((u_int)fd >= fdp->fd_nfiles ||
-	    (fp = fdp->fd_ofiles[fd]) == NULL)
+	    (fp = fdp->fd_fdents[fd].fde_file) == NULL)
 		return (EBADF);
 	if (fp->f_type != DTYPE_VNODE)
 		return (EINVAL);
