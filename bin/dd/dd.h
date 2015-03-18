@@ -68,6 +68,7 @@ typedef struct {
 	size_t	trunc;			/* # of truncated records */
 	size_t	swab;			/* # of odd-length swab blocks */
 	off_t	bytes;			/* # of bytes written */
+	off_t	total;			/* # of bytes in input */
 	struct	timeval	startv;		/* start time of dd */
 } STAT;
 

@@ -49,12 +49,14 @@
 #include "dd.h"
 #include "extern.h"
 
+static void time_fmt(char *, size_t, time_t);
+
 void
 summary(void)
 {
 	struct timeval nowtv;
-	char buf[4][100];
-	struct iovec iov[4];
+	char buf[5][100];
+	struct iovec iov[5];
 	double microsecs;
 	int i = 0;
 
@@ -96,10 +98,52 @@ summary(void)
 		    ((double)st.bytes * 1000000) / microsecs);
 		iov[i].iov_base = buf[3];
 		iov[i++].iov_len = strlen(buf[3]);
+
+		/* Percentage complete and estimated time remaining. */
+		if (st.total > 0 && st.bytes > 0 && st.bytes < st.total) {
+			iov[i-1].iov_len--;
+			time_t left = ((double)nowtv.tv_sec *
+			    (double)st.total / (double)st.bytes) -
+			    (double)nowtv.tv_sec;
+			char timebuf[16];
+			time_fmt(timebuf, sizeof(buf), left);
+			(void)snprintf(buf[4], sizeof(buf[4]),
+			    " (%zd%% ~%s)\n",
+			    st.bytes * 100 / st.total, timebuf);
+			iov[i].iov_base = buf[4];
+			iov[i++].iov_len = strlen(buf[4]);
+		}
 	}
 
 	(void)writev(STDERR_FILENO, iov, i);
 }
+
+static void
+time_fmt(char *buf, size_t len, time_t val)
+{
+	time_t major = 0, minor = val;
+	char l = 'm', r = 's';
+	if (minor > 60) {
+		major = minor / 60;
+		minor %= 60;
+	}
+	if (major > 60) {
+		r = l;
+		l = 'h';
+		minor = major;
+		major = minor / 60;
+		minor %= 60;
+	}
+	if (major > 24) {
+		r = l;
+		l = 'd';
+		minor = major;
+		major = minor / 24;
+		minor %= 24;
+	}
+	snprintf(buf, len, "%lld%c%02lld%c", major, l, minor, r);
+}
+
 
 /* ARGSUSED */
 void

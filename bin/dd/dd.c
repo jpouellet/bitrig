@@ -55,9 +55,11 @@
 static void dd_close(void);
 static void dd_in(void);
 static void getfdtype(IO *);
+static void estimate_size(void);
 static void setup(void);
 
 #define MAXIMUM(a, b)	(((a) > (b)) ? (a) : (b))
+#define MINIMUM(a, b)	(((a) < (b)) ? (a) : (b))
 
 IO	in, out;		/* input/output state */
 STAT	st;			/* statistics */
@@ -189,8 +191,24 @@ setup(void)
 #endif	/* NO_CONV */
 	}
 
+	estimate_size();
+
 	/* Statistics timestamp. */
 	(void)gettimeofday(&st.startv, (struct timezone *)NULL);
+}
+
+static void
+estimate_size(void)
+{
+	struct stat fdst;
+	off_t len = 0;
+
+	if (fstat(in.fd, &fdst) == 0)
+		len = MAXIMUM(0, fdst.st_size - in.offset * in.dbsz);
+	if (ddflags & C_COUNT)
+		len = MINIMUM(len, in.dbsz * cpy_cnt);
+
+	st.total = len;
 }
 
 static void
