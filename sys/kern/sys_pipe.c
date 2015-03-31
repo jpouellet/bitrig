@@ -160,8 +160,8 @@ dopipe(struct proc *p, int *ufds, int flags)
 	wf->f_ops = &pipeops;
 
 	if (flags & O_CLOEXEC) {
-		fdp->fd_ofileflags[fds[0]] |= UF_EXCLOSE;
-		fdp->fd_ofileflags[fds[1]] |= UF_EXCLOSE;
+		fdp->fd_fdents[fds[0]].fde_flags |= UF_EXCLOSE;
+		fdp->fd_fdents[fds[1]].fde_flags |= UF_EXCLOSE;
 	}
 
 	rpipe->pipe_peer = wpipe;

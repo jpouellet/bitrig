@@ -863,7 +863,7 @@ doopenat(struct proc *p, int fd, const char *path, int oflags, mode_t mode,
 		goto out;
 	flags = FFLAGS(oflags);
 	if (flags & O_CLOEXEC)
-		fdp->fd_ofileflags[indx] |= UF_EXCLOSE;
+		fdp->fd_fdents[indx].fde_flags |= UF_EXCLOSE;
 
 	cmode = ((mode &~ fdp->fd_cmask) & ALLPERMS) &~ S_ISTXT;
 	NDINITAT(&nd, LOOKUP, FOLLOW, UIO_USERSPACE, fd, path, p);
@@ -1022,7 +1022,7 @@ sys_fhopen(struct proc *p, void *v, register_t *retval)
 		goto bad;
 	}
 	if (flags & O_CLOEXEC)
-		fdp->fd_ofileflags[indx] |= UF_EXCLOSE;
+		fdp->fd_fdents[indx].fde_flags |= UF_EXCLOSE;
 
 	if ((error = copyin(SCARG(uap, fhp), &fh, sizeof(fhandle_t))) != 0)
 		goto bad;

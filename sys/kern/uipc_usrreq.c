@@ -743,10 +743,10 @@ restart:
 		 * fdalloc() works properly.. We finalize it all
 		 * in the loop below.
 		 */
-		p->p_fd->fd_ofiles[fdp[i]] = *rp++;
+		p->p_fd->fd_fdents[fdp[i]].fde_file = *rp++;
 
 		if (flags & MSG_CMSG_CLOEXEC)
-			p->p_fd->fd_ofileflags[fdp[i]] |= UF_EXCLOSE;
+			p->p_fd->fd_fdents[fdp[i]].fde_flags |= UF_EXCLOSE;
 	}
 
 	/*

@@ -82,7 +82,7 @@ sys_socket(struct proc *p, void *v, register_t *retval)
 	fdplock(fdp);
 	error = falloc(p, &fp, &fd);
 	if (error == 0 && (type & SOCK_CLOEXEC))
-		fdp->fd_ofileflags[fd] |= UF_EXCLOSE;
+		fdp->fd_fdents[fd].fde_flags |= UF_EXCLOSE;
 	fdpunlock(fdp);
 	if (error != 0)
 		goto out;
@@ -239,7 +239,7 @@ redo:
 	fdplock(fdp);
 	error = falloc(p, &fp, &tmpfd);
 	if (error == 0 && (flags & SOCK_CLOEXEC))
-		fdp->fd_ofileflags[tmpfd] |= UF_EXCLOSE;
+		fdp->fd_fdents[tmpfd].fde_flags |= UF_EXCLOSE;
 	fdpunlock(fdp);
 	if (error != 0) {
 		/*
@@ -399,8 +399,8 @@ sys_socketpair(struct proc *p, void *v, register_t *retval)
 	fp2->f_ops = &socketops;
 	fp2->f_data = so2;
 	if (flags & SOCK_CLOEXEC) {
-		fdp->fd_ofileflags[sv[0]] |= UF_EXCLOSE;
-		fdp->fd_ofileflags[sv[1]] |= UF_EXCLOSE;
+		fdp->fd_fdents[sv[0]].fde_flags |= UF_EXCLOSE;
+		fdp->fd_fdents[sv[1]].fde_flags |= UF_EXCLOSE;
 	}
 	if ((error = soconnect2(so1, so2)) != 0)
 		goto free4;

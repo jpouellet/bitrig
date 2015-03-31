@@ -34,9 +34,6 @@
 
 #include <sys/rwlock.h>
 /*
- * This structure is used for the management of descriptors.  It may be
- * shared by multiple processes.
- *
  * A process is initially started out with NDFILE descriptors stored within
  * this structure, selected to be enough for typical applications based on
  * the historical limit of 20 open files (and the usage of descriptors by
@@ -56,22 +53,33 @@
 #define NDHISLOTS(x)	(NDREDUCE(NDREDUCE(x)))
 #define NDLOSLOTS(x)	(NDHISLOTS(x) << NDENTRYSHIFT)
 
+/*
+ * File wrapper for per-process per-file data.
+ */
+struct filedescent {
+	struct	file *fde_file;		/* file structure for open file */
+	char	fde_flags;		/* process-local file flags */
+};
+
+/*
+ * This structure is used for the management of descriptors.  It may be
+ * shared by multiple processes.
+ */
 struct filedesc {
-	struct	file **fd_ofiles;	/* file structures for open files */
-	char	*fd_ofileflags;		/* per-process open file flags */
+	struct	filedescent *fd_fdents;	/* per-process file wrappers */
 	struct	vnode *fd_cdir;		/* current directory */
 	struct	vnode *fd_rdir;		/* root directory */
 	int	fd_nfiles;		/* number of open files allocated */
 	int	fd_openfd;		/* number of files currently open */
 	u_int	*fd_himap;		/* each bit points to 32 fds */
 	u_int	*fd_lomap;		/* bitmap of free fds */
-	int	fd_lastfile;		/* high-water mark of fd_ofiles */
+	int	fd_lastfile;		/* high-water mark of fd_fdents */
 	int	fd_freefile;		/* approx. next free file */
 	u_short	fd_cmask;		/* mask for file creation */
 	u_short	fd_refcnt;		/* reference count */
 	struct rwlock fd_lock;		/* lock for the file descs; must be */
-					/* held when writing to fd_ofiles, */
-					/* fd_ofileflags, or fd_{hi,lo}map */
+					/* held when writing to fd_fdents */
+					/* or fd_{hi,lo}map */
 
 	int	fd_knlistsize;		/* size of knlist */
 	struct	klist *fd_knlist;	/* list of attached knotes */
@@ -91,8 +99,7 @@ struct filedesc0 {
 	 * These arrays are used when the number of open files is
 	 * <= NDFILE, and are then pointed to by the pointers above.
 	 */
-	struct	file *fd_dfiles[NDFILE];
-	char	fd_dfileflags[NDFILE];
+	struct	filedescent fd_dfdents[NDFILE];
 	/*
 	 * There arrays are used when the number of open files is
 	 * <= 1024, and are then pointed to by the pointers above.

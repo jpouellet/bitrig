@@ -414,9 +414,9 @@ sys_ioctl(struct proc *p, void *v, register_t *retval)
 	case FIOCLEX:
 		fdplock(fdp);
 		if (com == FIONCLEX)
-			fdp->fd_ofileflags[SCARG(uap, fd)] &= ~UF_EXCLOSE;
+			fdp->fd_fdents[SCARG(uap, fd)].fde_flags &= ~UF_EXCLOSE;
 		else
-			fdp->fd_ofileflags[SCARG(uap, fd)] |= UF_EXCLOSE;
+			fdp->fd_fdents[SCARG(uap, fd)].fde_flags |= UF_EXCLOSE;
 		fdpunlock(fdp);
 		return (0);
 	}

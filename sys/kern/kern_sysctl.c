@@ -1202,8 +1202,11 @@ fill_file(struct kinfo_file *kf, struct file *fp, struct filedesc *fdp,
 		strlcpy(kf->p_comm, pr->ps_mainproc->p_comm,
 		    sizeof(kf->p_comm));
 	}
-	if (fdp != NULL)
-		kf->fd_ofileflags = fdp->fd_ofileflags[fd];
+	if (fdp != NULL) {
+		KASSERT(fd < fdp->fd_nfiles);
+		KASSERT(fdp->fd_fdents[fd].fde_file != NULL);
+		kf->fd_ofileflags = fdp->fd_fdents[fd].fde_flags;
+	}
 }
 
 /*
@@ -1294,7 +1297,7 @@ sysctl_file(int *name, u_int namelen, char *where, size_t *sizep,
 			if (pr->ps_tracevp)
 				FILLIT(NULL, NULL, KERN_FILE_TRACE, pr->ps_tracevp, pr);
 			for (i = 0; i < fdp->fd_nfiles; i++) {
-				if ((fp = fdp->fd_ofiles[i]) == NULL)
+				if ((fp = fdp->fd_fdents[i].fde_file) == NULL)
 					continue;
 				if (!FILE_IS_USABLE(fp))
 					continue;
@@ -1322,7 +1325,7 @@ sysctl_file(int *name, u_int namelen, char *where, size_t *sizep,
 			if (pr->ps_tracevp)
 				FILLIT(NULL, NULL, KERN_FILE_TRACE, pr->ps_tracevp, pr);
 			for (i = 0; i < fdp->fd_nfiles; i++) {
-				if ((fp = fdp->fd_ofiles[i]) == NULL)
+				if ((fp = fdp->fd_fdents[i].fde_file) == NULL)
 					continue;
 				if (!FILE_IS_USABLE(fp))
 					continue;
